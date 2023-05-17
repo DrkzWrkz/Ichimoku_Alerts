@@ -61,7 +61,7 @@ namespace ATAS.Indicators.Technical
 
         private readonly ValueDataSeries _conversionLine = new ValueDataSeries("Conversion")
         {
-            Color = Colors.AliceBlue
+            Color = Colors.Blue
         };
 
         private readonly Lowest _conversionLow = new Lowest
@@ -71,7 +71,7 @@ namespace ATAS.Indicators.Technical
 
         private readonly RangeDataSeries _downSeries = new RangeDataSeries("Down")
         {
-            RangeColor = Colors.Red
+            RangeColor = Color.FromArgb(60, 255, 0, 0)
         };
 
         private readonly ValueDataSeries _laggingSpan = new ValueDataSeries("Lagging Span")
@@ -101,7 +101,7 @@ namespace ATAS.Indicators.Technical
 
         private readonly RangeDataSeries _upSeries = new RangeDataSeries("Up")
         {
-            RangeColor = Colors.Green
+            RangeColor = Color.FromArgb(60, 0, 128, 0)
         };
         private int _days;
         private int _displacement = 26;
@@ -394,7 +394,6 @@ namespace ATAS.Indicators.Technical
                 BullishCloudCount();
                 AboveCloudCount();
                 totalBullishConf = bullishCloudCount + tkBullishCount + closeAboveKumoCount + laggingBullishCount;
-                AddAlert("Alert1", TimeFrame, totalBullishConf + " bullish condition(s) currently present", Colors.Black, Colors.Green);
             }
 
             ///bearish conf counter
@@ -439,7 +438,12 @@ namespace ATAS.Indicators.Technical
                 BearishCloudCount();
                 BelowCloudCount();
                 totalBearishConf = closeBelowKumoCount + tkBearishCount + laggingBearishCount + bearishCloudCount;
-                AddAlert("Alert1", TimeFrame, totalBearishConf + " bearish condition(s) currently present", Colors.Black, Colors.Green);
+                
+            }
+            void ThrowConfirmations()
+            {
+                AddAlert("Alert1", TimeFrame +" "+Instrument, totalBearishConf + " bearish condition(s) currently present\n" + totalBullishConf + " bullish condition(s) currently present", Colors.Black, Colors.Green);              
+
             }
 
             //// Alert Conditions
@@ -451,18 +455,21 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     above_Kumo_Triggered = true;
                     below_Kumo_Triggered = false;
-                    AddAlert("Alert1", TimeFrame , "Close Above CLoud" , Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Close Above CLoud" , Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
+                    ThrowConfirmations();
                 }
                 else if (close_Below_Kumo)
                 {
                     lastBarAlert = bar;
                     above_Kumo_Triggered = false;
                     below_Kumo_Triggered = true;
-                    AddAlert("Alert1", TimeFrame , "Close Below CLoud", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Close Below CLoud", Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
+                    ThrowConfirmations();
+
                 }
 
                 if (tk_Bullish)
@@ -470,9 +477,11 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     tk_TriggeredBullish = true;
                     tk_TriggeredBearish = false;
-                    AddAlert("Alert1", TimeFrame, "Bullish Crossover", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bullish Crossover", Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
+                    ThrowConfirmations();
+
 
                 }
                 else if (tk_Bearish)
@@ -480,10 +489,10 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     tk_TriggeredBullish = false;
                     tk_TriggeredBearish = true;
-                    AddAlert("Alert1", TimeFrame, "Bearish Crossover", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bearish Crossover", Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
-
+                    ThrowConfirmations();
                 }
 
 
@@ -492,20 +501,20 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = true;
                     lagging_Bearish_Triggered = false;
-                    AddAlert("Alert1", TimeFrame, "Lagging Span is Bullish", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Lagging Span is Bullish", Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
-
+                    ThrowConfirmations();
                 }
                 else if (lagging_Bearish)
                 {
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = false;
                     lagging_Bearish_Triggered = true;
-                    AddAlert("Alert1", TimeFrame, "Lagging Span is Bearish", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Lagging Span is Bearish", Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
-
+                    ThrowConfirmations();
                 }
 
                 if (bullishCloud)
@@ -513,20 +522,20 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     bullishCloud_Triggered = true;
                     bearishCloud_Triggered = false;
-                    AddAlert("Alert1", TimeFrame, "Bullish Cloud", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bullish Cloud", Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
-
+                    ThrowConfirmations();
                 }
                 else if (bearishCloud)
                 {
                     lastBarAlert = bar;
                     bullishCloud_Triggered = false;
                     bearishCloud_Triggered = true;
-                    AddAlert("Alert1", TimeFrame, "Bearish Cloud", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bearish Cloud", Colors.Black, Colors.Green);
                     CalcBullishConf();
                     CalcBearishConf();
-
+                    ThrowConfirmations();
 
                 }
             }
@@ -631,9 +640,6 @@ namespace ATAS.Indicators.Technical
                 return;
 
       
-
-
-
             var textColor = TextColor.Convert();
             var mainTextRectangle = new Rectangle();
             var confTextRectangle = new Rectangle();
