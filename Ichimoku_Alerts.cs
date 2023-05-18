@@ -56,8 +56,6 @@ namespace ATAS.Indicators.Technical
             {
                 _enable_Alerts = value;
                 UpdateCounters();
-                RecalculateValues();
-
             }
         }
 
@@ -316,6 +314,106 @@ namespace ATAS.Indicators.Technical
         int bearishCloudCount = 0;
         int totalBearishConf = 0;
 
+        void UpdateCounters()
+        {
+            CalcBullishConf();
+            CalcBearishConf();
+        }
+        void TkBullishCount()
+        {
+            if (tk_TriggeredBullish)
+            {
+                tkBullishCount = 1;
+            }
+            else { tkBullishCount = 0; }
+
+        }
+        void LaggingBullishCount()
+        {
+            if (lagging_Bullish_Triggered)
+            {
+                laggingBullishCount = 1;
+            }
+            else { laggingBullishCount = 0; }
+        }
+        void BullishCloudCount()
+        {
+            if (bullishCloud_Triggered)
+            {
+                bullishCloudCount = 1;
+            }
+            else { bullishCloudCount = 0; }
+        }
+        void AboveCloudCount()
+        {
+            if (above_Kumo_Triggered)
+            {
+                closeAboveKumoCount = 1;
+            }
+            else
+            {
+                closeAboveKumoCount = 0;
+            }
+        }
+        void CalcBullishConf()
+        {
+            TkBullishCount();
+            LaggingBullishCount();
+            BullishCloudCount();
+            AboveCloudCount();
+            totalBullishConf = bullishCloudCount + tkBullishCount + closeAboveKumoCount + laggingBullishCount;
+        }
+
+        ///bearish conf counter
+
+
+        void TkBearishCount()
+        {
+            if (tk_TriggeredBearish)
+                tkBearishCount = 1;
+            else
+                tkBearishCount = 0;
+        }
+
+        void LaggingBearishCount()
+        {
+            if (lagging_Bearish_Triggered)
+                laggingBearishCount = 1;
+            else
+                laggingBearishCount = 0;
+        }
+
+        void BearishCloudCount()
+        {
+            if (bearishCloud_Triggered)
+                bearishCloudCount = 1;
+            else
+                bearishCloudCount = 0;
+        }
+
+        void BelowCloudCount()
+        {
+            if (below_Kumo_Triggered)
+                closeBelowKumoCount = 1;
+            else
+                closeBelowKumoCount = 0;
+        }
+
+        void CalcBearishConf()
+        {
+            TkBearishCount();
+            LaggingBearishCount();
+            BearishCloudCount();
+            BelowCloudCount();
+            totalBearishConf = closeBelowKumoCount + tkBearishCount + laggingBearishCount + bearishCloudCount;
+
+        }
+        void ThrowConfirmations()
+        {
+            AddAlert("Alert1", TimeFrame + " " + Instrument, totalBearishConf + " bearish condition(s) currently present\n" + totalBullishConf + " bullish condition(s) currently present", Colors.Black, Colors.Green);
+
+        }
+
         protected override void OnCalculate(int bar, decimal value)
         {
             IndicatorCandle candle = GetCandle(bar);
@@ -423,108 +521,7 @@ namespace ATAS.Indicators.Technical
             //////////////////////////////////////////////
 
             //// bullish conf counter
-            void UpdateCounters()
-            {
-                totalBullishConf = 0;
-                totalBearishConf = 0;
-                CalcBullishConf();
-                CalcBearishConf();
-
-            }
-            void TkBullishCount()
-            {
-                if (tk_TriggeredBullish)
-                {
-                    tkBullishCount = 1;
-                }
-                else { tkBullishCount = 0; }
-
-            }
-            void LaggingBullishCount()
-            {
-                if (lagging_Bullish_Triggered)
-                {
-                    laggingBullishCount = 1;
-                }
-                else { laggingBullishCount = 0; }
-            }
-            void BullishCloudCount()
-            {
-                if (bullishCloud_Triggered)
-                {
-                    bullishCloudCount = 1;
-                }
-                else { bullishCloudCount = 0; }
-            }
-            void AboveCloudCount()
-            {
-                if (above_Kumo_Triggered)
-                {
-                    closeAboveKumoCount = 1;
-                }
-                else
-                {
-                    closeAboveKumoCount = 0;
-                }
-            }
-            void CalcBullishConf()
-            {
-                TkBullishCount();
-                LaggingBullishCount();
-                BullishCloudCount();
-                AboveCloudCount();
-                totalBullishConf = bullishCloudCount + tkBullishCount + closeAboveKumoCount + laggingBullishCount;
-            }
-
-            ///bearish conf counter
-
-
-            void TkBearishCount()
-            {
-                if (tk_TriggeredBearish)
-                    tkBearishCount = 1;
-                else
-                    tkBearishCount = 0;
-            }
-
-            void LaggingBearishCount()
-            {
-                if (lagging_Bearish_Triggered)
-                    laggingBearishCount = 1;
-                else
-                    laggingBearishCount = 0;
-            }
-
-            void BearishCloudCount()
-            {
-                if (bearishCloud_Triggered)
-                    bearishCloudCount = 1;
-                else
-                    bearishCloudCount = 0;
-            }
-
-            void BelowCloudCount()
-            {
-                if (below_Kumo_Triggered)
-                    closeBelowKumoCount = 1;
-                else
-                    closeBelowKumoCount = 0;
-            }
-
-            void CalcBearishConf()
-            {
-                TkBearishCount();
-                LaggingBearishCount();
-                BearishCloudCount();
-                BelowCloudCount();
-                totalBearishConf = closeBelowKumoCount + tkBearishCount + laggingBearishCount + bearishCloudCount;
-                
-            }
-            void ThrowConfirmations()
-            {
-                AddAlert("Alert1", TimeFrame +" "+Instrument, totalBearishConf + " bearish condition(s) currently present\n" + totalBullishConf + " bullish condition(s) currently present", Colors.Black, Colors.Green);              
-
-            }
+           
 
             //// Alert Conditions
             if (enable_Alerts && CurrentBar - 1 == bar && lastBarAlert != bar)
