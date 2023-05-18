@@ -28,7 +28,7 @@ namespace ATAS.Indicators.Technical
     public class Ichimoku_Alerts : Indicator
     {
 
-
+        // is conditions triggered?
         private bool tk_TriggeredBullish = false;
         private bool tk_TriggeredBearish = false;
         private bool lagging_Bullish_Triggered = false;
@@ -38,6 +38,94 @@ namespace ATAS.Indicators.Technical
         private bool above_Kumo_Triggered = false;
         private bool below_Kumo_Triggered = false;
 
+        // select desired signals input
+        private bool isTk_Cross = true;
+        private bool isKumo_Flip = true;
+        private bool isLagging_Span = true;
+        private bool isCandle_Close = true;
+
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Enable Alerts")]
+        public bool enable_Alerts
+        {
+            get
+            {
+                return _enable_Alerts;
+            }
+            set
+            {
+                _enable_Alerts = value;
+                UpdateCounters();
+                RecalculateValues();
+
+            }
+        }
+
+
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Tenkan-sen Cross")]
+
+        public bool i_Tk_Cross 
+        { 
+            get 
+            { 
+                return isTk_Cross; 
+            }
+            set 
+            { 
+                isTk_Cross = value;
+                UpdateCounters();
+            }
+        
+        }
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Chikou Cross (Lagging)")]
+
+        public bool i_Lagging_Span
+        {
+            get 
+            { 
+                return isLagging_Span;
+            }
+            set 
+            { 
+                isLagging_Span= value;
+                UpdateCounters();
+            }
+        }
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Kumo Twist")]
+
+        public bool i_Kumo_Flip
+        {
+            get
+            {
+                return isKumo_Flip;
+            }
+            set
+            {
+                isKumo_Flip = value;
+                UpdateCounters();
+
+            }
+        }
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Close Above/Below Kumo")]
+
+        public bool i_Candle_Close
+        {
+            get
+            {
+                return isCandle_Close;
+            }
+            set
+            {
+                isCandle_Close = value;
+                UpdateCounters();
+
+            }
+        }
+        // ichimoku components
 
         private readonly Highest _baseHigh = new Highest
         {
@@ -185,24 +273,9 @@ namespace ATAS.Indicators.Technical
                 RecalculateValues();
             }
         }
+        
 
 
-
-        [LocalizedCategory(typeof(Resources), "Settings")]
-        [DisplayName("Enable Alerts")]
-        public bool enable_Alerts
-        {
-            get
-            {
-                return _enable_Alerts;
-            }
-            set
-            {
-                _enable_Alerts = value;
-                RecalculateValues();
-
-            }
-        }
 
         public Ichimoku_Alerts()
             : base(useCandles: true)
@@ -350,7 +423,14 @@ namespace ATAS.Indicators.Technical
             //////////////////////////////////////////////
 
             //// bullish conf counter
+            void UpdateCounters()
+            {
+                totalBullishConf = 0;
+                totalBearishConf = 0;
+                CalcBullishConf();
+                CalcBearishConf();
 
+            }
             void TkBullishCount()
             {
                 if (tk_TriggeredBullish)
@@ -450,7 +530,7 @@ namespace ATAS.Indicators.Technical
             if (enable_Alerts && CurrentBar - 1 == bar && lastBarAlert != bar)
             {
 
-                if (close_Above_Kumo)
+                if (close_Above_Kumo && isCandle_Close)
                 {
                     lastBarAlert = bar;
                     above_Kumo_Triggered = true;
@@ -460,7 +540,7 @@ namespace ATAS.Indicators.Technical
                     CalcBearishConf();
                     ThrowConfirmations();
                 }
-                else if (close_Below_Kumo)
+                else if (close_Below_Kumo && isCandle_Close)
                 {
                     lastBarAlert = bar;
                     above_Kumo_Triggered = false;
@@ -472,7 +552,7 @@ namespace ATAS.Indicators.Technical
 
                 }
 
-                if (tk_Bullish)
+                if (tk_Bullish && isTk_Cross)
                 {
                     lastBarAlert = bar;
                     tk_TriggeredBullish = true;
@@ -484,7 +564,7 @@ namespace ATAS.Indicators.Technical
 
 
                 }
-                else if (tk_Bearish)
+                else if (tk_Bearish && isTk_Cross)
                 {
                     lastBarAlert = bar;
                     tk_TriggeredBullish = false;
@@ -496,7 +576,7 @@ namespace ATAS.Indicators.Technical
                 }
 
 
-                if (lagging_Bullish)
+                if (lagging_Bullish && isLagging_Span)
                 {
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = true;
@@ -506,7 +586,7 @@ namespace ATAS.Indicators.Technical
                     CalcBearishConf();
                     ThrowConfirmations();
                 }
-                else if (lagging_Bearish)
+                else if (lagging_Bearish && isLagging_Span)
                 {
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = false;
@@ -517,7 +597,7 @@ namespace ATAS.Indicators.Technical
                     ThrowConfirmations();
                 }
 
-                if (bullishCloud)
+                if (bullishCloud && isKumo_Flip)
                 {
                     lastBarAlert = bar;
                     bullishCloud_Triggered = true;
@@ -527,7 +607,7 @@ namespace ATAS.Indicators.Technical
                     CalcBearishConf();
                     ThrowConfirmations();
                 }
-                else if (bearishCloud)
+                else if (bearishCloud && isKumo_Flip)
                 {
                     lastBarAlert = bar;
                     bullishCloud_Triggered = false;
