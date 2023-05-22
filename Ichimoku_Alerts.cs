@@ -23,6 +23,7 @@ using System.Runtime.CompilerServices;
 ///////////////
 ///Ideas 
 ///Plot a bullish or bearish triangle on the chart once all selected conditions are met. 
+///remove vertical and horizontal offset and just use Height and width to position the diplay
 ///////////////
 
 ///////////////
@@ -43,7 +44,7 @@ using System.Runtime.CompilerServices;
 ///Fix issue where "show active signals" activates both "show active signals" and "Show confirmation counter"
 ///fixed issue where Confirmation Counters displayed position changes upon changing between "Show Active Conditions" & "Show Confirmation Counter"
 ///Reordered settings menu
-/// "No Siganls Selected" shows if bullish & bearish signals are not selected in settings.
+///"No Siganls Selected" shows if bullish & bearish signals are not selected in settings.
 ///Conditions are now hidden when deselected
 ///if total bullish or bearish conditions equals 0 then the respective counter displays "No (Bullish/Bearish) Signals".
 //////////////
@@ -58,6 +59,7 @@ namespace ATAS.Indicators.Technical
 
     public class Ichimoku_Alerts : Indicator
     {
+        #region Variables & Inputs
 
         // is conditions triggered?
         private bool tk_TriggeredBullish = false;
@@ -135,14 +137,14 @@ namespace ATAS.Indicators.Technical
         [LocalizedCategory(typeof(Resources), "Select Alerts")]
         [DisplayName("Tenkan-sen Cross")]
 
-        public bool i_Tk_Cross 
-        { 
-            get 
-            { 
-                return isTk_Cross; 
+        public bool i_Tk_Cross
+        {
+            get
+            {
+                return isTk_Cross;
             }
-            set 
-            { 
+            set
+            {
                 isTk_Cross = value;
                 UpdateCounters();
                 RecalculateValues();
@@ -173,13 +175,13 @@ namespace ATAS.Indicators.Technical
 
         public bool i_Lagging_Span
         {
-            get 
-            { 
+            get
+            {
                 return isLagging_Span;
             }
-            set 
-            { 
-                isLagging_Span= value;
+            set
+            {
+                isLagging_Span = value;
                 UpdateCounters();
                 RecalculateValues();
 
@@ -267,10 +269,12 @@ namespace ATAS.Indicators.Technical
         {
             RangeColor = Color.FromArgb(60, 0, 128, 0)
         };
+
         private int _days;
         private int _displacement = 26;
         private int _targetBar;
         private bool _enable_Alerts = true;
+
         [Display(ResourceType = typeof(Resources), GroupName = "Calculation", Name = "DaysLookBack", Order = int.MaxValue, Description = "DaysLookBackDescription")]
         [Range(0, 10000)]
         public int Days
@@ -349,10 +353,10 @@ namespace ATAS.Indicators.Technical
                 RecalculateValues();
             }
         }
-        
 
+        #endregion
 
-
+        #region Initialize Class
         public Ichimoku_Alerts()
             : base(useCandles: true)
         {
@@ -365,7 +369,7 @@ namespace ATAS.Indicators.Technical
             //IL_014f: Unknown result type (might be due to invalid IL or missing references)
             AdditionalFont.PropertyChanged += (a, b) => RedrawChart();
 
-            
+
             DenyToChangePanel = true;
             EnableCustomDrawing = true;
             SubscribeToDrawingEvents(DrawingLayouts.Historical);
@@ -379,12 +383,11 @@ namespace ATAS.Indicators.Technical
             base.DataSeries.Add(_upSeries);
             base.DataSeries.Add(_downSeries);
         }
+        #endregion
 
-        ///////////////////////////////////////////////
-        ///3rd solution for Confirmation Counter
-        //////////////////////////////////////////////
-        
-        
+        #region Confirmation Counter
+
+
         private int lastBarAlert = 0;
         private int closeAboveKumoCount = 0;
         private int tkBullishCount = 0;
@@ -511,6 +514,9 @@ namespace ATAS.Indicators.Technical
 
         }
 
+        #endregion
+
+        #region Ichimoku components
 
         // ATAS ichimoku Code
         protected override void OnCalculate(int bar, decimal value)
@@ -602,6 +608,9 @@ namespace ATAS.Indicators.Technical
                     _upSeries[bar] = _downSeries[bar];
                 }
             }
+            #endregion
+
+            #region Alert Logic
 
             //Alert Conditions
             bool tkInvalid = _conversionLine[bar] == _baseLine[bar];
@@ -624,7 +633,7 @@ namespace ATAS.Indicators.Technical
             if (enable_Alerts && CurrentBar - 1 == bar && lastBarAlert != bar)
             {
 
-                if (tkInvalid && isTk_Cross) 
+                if (tkInvalid && isTk_Cross)
                 {
                     if (tk_TriggeredBullish)
                     {
@@ -642,7 +651,7 @@ namespace ATAS.Indicators.Technical
                     tk_TriggeredBullish = false;
                     tk_TriggeredBearish = false;
                     UpdateCounters();
-                    
+
 
                 }
                 else if (tk_Bullish && isTk_Cross && isBullishConf)
@@ -666,7 +675,7 @@ namespace ATAS.Indicators.Technical
                     ThrowConfirmations();
                 }
 
-                if (laggingSpanInvalid && isLagging_Span) 
+                if (laggingSpanInvalid && isLagging_Span)
                 {
                     if (lagging_Bullish_Triggered)
                     {
@@ -692,7 +701,7 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = true;
                     lagging_Bearish_Triggered = false;
-                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bullish", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bullish", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
                 }
@@ -701,7 +710,7 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = false;
                     lagging_Bearish_Triggered = true;
-                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bearish", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bearish", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
                 }
@@ -732,7 +741,7 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     bullishCloud_Triggered = true;
                     bearishCloud_Triggered = false;
-                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Cloud", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Cloud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
                 }
@@ -741,7 +750,7 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     bullishCloud_Triggered = false;
                     bearishCloud_Triggered = true;
-                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Cloud", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Cloud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
 
@@ -776,7 +785,7 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     above_Kumo_Triggered = true;
                     below_Kumo_Triggered = false;
-                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Above CLoud", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Above CLoud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
                 }
@@ -785,7 +794,7 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     above_Kumo_Triggered = false;
                     below_Kumo_Triggered = true;
-                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Below CLoud", Colors.Black, Colors.Green);
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Below CLoud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
 
@@ -793,11 +802,9 @@ namespace ATAS.Indicators.Technical
 
             }
         }
+        #endregion
 
-
-        ////////////////////////////
-        ///display logic
-        /////////////////////////////
+        #region Display Logic
         public enum Location
         {
             [Display(Name = "Center")]
@@ -818,7 +825,7 @@ namespace ATAS.Indicators.Technical
 
 
 
-        #region Properties
+        #region Display Properties
 
         [Display(Name = "Color", GroupName = "Display Settings", Order = 10)]
         public Color TextColor { get; set; } = Color.FromArgb(255, 225, 225, 225);
@@ -845,14 +852,15 @@ namespace ATAS.Indicators.Technical
         [Display(Name = "Show Active Signals", GroupName = "Display Settings", Order = 2)]
         public bool ShowCondText { get; set; } = true;
 
-        [Display(Name = "Width", GroupName = "Display Settings", Order = 81)]
+        [Display(Name = "Horizontal Position", GroupName = "Display Settings", Order = 81)]
         public int width { get; set; } = 372;
 
-        [Display(Name = "Height", GroupName = "Display Settings", Order = 82)]
+        [Display(Name = "Vertical Position", GroupName = "Display Settings", Order = 82)]
         public int height { get; set; } = 161;
 
         #endregion
 
+        #region OnRenderLogic
         protected override void OnRender(RenderContext context, DrawingLayouts layout)
         {
             string confText = "";
@@ -865,8 +873,8 @@ namespace ATAS.Indicators.Technical
             var condTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
 
 
-            if (ShowConfText) 
-            { 
+            if (ShowConfText)
+            {
                 if (isBullishConf && isBearishConf)
                 {
                     if (totalBullishConf == 0 && totalBearishConf != 0)
@@ -901,7 +909,7 @@ namespace ATAS.Indicators.Technical
 
             }
 
-            if (ShowCondText) 
+            if (ShowCondText)
             {
 
                 if (above_Kumo_Triggered && isKumoClose && isBullishConf)
@@ -1115,9 +1123,9 @@ namespace ATAS.Indicators.Technical
                     throw new ArgumentOutOfRangeException();
             }
         }
+        #endregion
 
-            
-
+        #endregion
 
     }
 }
