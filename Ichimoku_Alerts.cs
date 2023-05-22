@@ -22,13 +22,13 @@ using System.Runtime.CompilerServices;
 
 ///////////////
 ///Ideas 
-///pop up window that prompts user to select bullish or bearish signals if none are selected in settings.
-///if total bullish or bearish conditions equals 0 then hide the respective counter.
+///Plot a bullish or bearish triangle on the chart once all selected conditions are met. 
 ///////////////
 
 ///////////////
 ///Issues
-///fix issue where confirmation counter does not update on change of settings.
+///if all alert conditions are off the Counter only updates once when selecting a condition and will not update again until next bar 
+///Confirmation counter does not update when conditions are selected/deselected
 ///////////////
 
 
@@ -42,6 +42,10 @@ using System.Runtime.CompilerServices;
 ///optimized alert conitions using UpdateCounters()
 ///Fix issue where "show active signals" activates both "show active signals" and "Show confirmation counter"
 ///fixed issue where Confirmation Counters displayed position changes upon changing between "Show Active Conditions" & "Show Confirmation Counter"
+///Reordered settings menu
+/// "No Siganls Selected" shows if bullish & bearish signals are not selected in settings.
+///Conditions are now hidden when deselected
+///if total bullish or bearish conditions equals 0 then the respective counter displays "No (Bullish/Bearish) Signals".
 //////////////
 
 
@@ -92,7 +96,7 @@ namespace ATAS.Indicators.Technical
         }
 
         [LocalizedCategory(typeof(Resources), "Select Alerts")]
-        [DisplayName("Enable Bullish Signals")]
+        [DisplayName("Bullish Alerts")]
         public bool i_isBullishConf
         {
             get
@@ -109,7 +113,7 @@ namespace ATAS.Indicators.Technical
         }
 
         [LocalizedCategory(typeof(Resources), "Select Alerts")]
-        [DisplayName("Enable Bearish Signals")]
+        [DisplayName("Bearish Alerts")]
 
         public bool i_isBearishConf
         {
@@ -827,9 +831,6 @@ namespace ATAS.Indicators.Technical
 
         public int VerticalOffset = 11;
 
-        
-
-  
         [Display(Name = "Font", GroupName = "Display Settings", Order = 11)]
 
         public FontSetting AdditionalFont { get; set; } = new FontSetting { Size = 8 };
@@ -868,19 +869,33 @@ namespace ATAS.Indicators.Technical
             { 
                 if (isBullishConf && isBearishConf)
                 {
-                    confText = "Bullish Signals: " + totalBullishConf + "\nBearish Signals: " + totalBearishConf + "\n";
+                    if (totalBullishConf == 0 && totalBearishConf != 0)
+                        confText = "No Bullish Signals" + "\nBearish Signals: " + totalBearishConf + "\n";
+                    else if (totalBullishConf != 0 && totalBearishConf == 0)
+                        confText = "Bullish Signals: " + totalBullishConf + "\nNo Bearish Signals" + "\n";
+                    else if (totalBullishConf == 0 && totalBearishConf == 0)
+                        confText = "No Signals present\n";
+                    else
+                        confText = "Bullish Signals: " + totalBullishConf + "\nBearish Signals: " + totalBearishConf + "\n";
+
                 }
                 else if (isBullishConf && !isBearishConf)
                 {
-                    confText = "Bullish Signals: " + totalBullishConf + "\n";
+                    if (totalBullishConf == 0)
+                        confText = "No Bullish Signals" + "\n";
+                    else
+                        confText = "Bullish Signals: " + totalBullishConf + "\n";
                 }
                 else if (!isBullishConf && isBearishConf)
                 {
-                    confText = "Bearish Signals: " + totalBearishConf + "\n";
+                    if (totalBearishConf == 0)
+                        confText = "No Bearish Signals" + "\n";
+                    else
+                        confText = "Bearish Signals: " + totalBearishConf + "\n";
                 }
                 else
                 {
-                    confText = "No Signal Selected";
+                    confText = "No Signals Selected";
                 }
 
 
@@ -889,28 +904,28 @@ namespace ATAS.Indicators.Technical
             if (ShowCondText) 
             {
 
-                if (above_Kumo_Triggered)
+                if (above_Kumo_Triggered && isKumoClose && isBullishConf)
                     condText += "Bullish Close\n";
 
-                if (below_Kumo_Triggered)
+                if (below_Kumo_Triggered && isKumoClose && isBearishConf)
                     condText += "Bearish Close\n";
 
-                if (tk_TriggeredBullish)
+                if (tk_TriggeredBullish && isTk_Cross && isBullishConf)
                     condText += "Bullish Tenkan\n";
 
-                if (tk_TriggeredBearish)
+                if (tk_TriggeredBearish && isTk_Cross && isBearishConf)
                     condText += "Bearish Tenkan\n";
 
-                if (lagging_Bullish_Triggered)
+                if (lagging_Bullish_Triggered && isLagging_Span && isBullishConf)
                     condText += "Bullish Lagging Span\n";
 
-                if (lagging_Bearish_Triggered)
+                if (lagging_Bearish_Triggered && isLagging_Span && isBearishConf)
                     condText += "Bearish Lagging Span\n";
 
-                if (bullishCloud_Triggered)
+                if (bullishCloud_Triggered && isKumo_Flip && isBullishConf)
                     condText += "Bullish Cloud\n";
 
-                if (bearishCloud_Triggered)
+                if (bearishCloud_Triggered && isKumo_Flip && isBearishConf)
                     condText += "Bearish Cloud\n";
 
                 if (condText == "")
