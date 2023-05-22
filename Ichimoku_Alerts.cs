@@ -22,24 +22,26 @@ using System.Runtime.CompilerServices;
 
 ///////////////
 ///Ideas 
-///Fix issue where sell/buy conditions does not update to false when in middle of cloud.
-///fix issue where confirmation counter does not update on change of settings.
-///if bullish or bearish conditions equals 0 then hide the respective counter.
-///Fix issue where "show active signals" activates both "show active signals" and "Show confirmation counter"
-///hide bullish counter if only bearish signals are selected and vice versa
 ///pop up window that prompts user to select bullish or bearish signals if none are selected in settings.
+///if total bullish or bearish conditions equals 0 then hide the respective counter.
+///////////////
+
+///////////////
+///Issues
+///fix issue where confirmation counter does not update on change of settings.
 ///////////////
 
 
-
 ///////////////
-///Completed updates
+///Completed Updates
 ///Bullish conditions come before bearish conditions in alerts window
 ///Can select which signals to look for.
 ///Added ability to select between only Bullish or Bearish signals.
 ///Fixed order of Select Alerts to go from most commonly used to less commonly used
 ///Alerts only show bullish confirmations when bullish signals are selected n vice versa
 ///optimized alert conitions using UpdateCounters()
+///Fix issue where "show active signals" activates both "show active signals" and "Show confirmation counter"
+///fixed issue where Confirmation Counters displayed position changes upon changing between "Show Active Conditions" & "Show Confirmation Counter"
 //////////////
 
 
@@ -820,7 +822,7 @@ namespace ATAS.Indicators.Technical
         [Display(Name = "TextLocation", GroupName = "Display Settings", Order = 20)]
         public Location TextLocation { get; set; } = Location.TopRight;
 
-        [Display(Name = "HorizontalOffset", GroupName = "Display Settings", Order = 30)]
+        [Display(Name = "HorizontalOffset", GroupName = "Display Settings", Order = 83)]
         public int HorizontalOffset { get; set; } = -302;
 
         public int VerticalOffset = 11;
@@ -828,20 +830,25 @@ namespace ATAS.Indicators.Technical
         
 
   
-        [Display(Name = "Font", GroupName = "Display Settings", Order = 80)]
+        [Display(Name = "Font", GroupName = "Display Settings", Order = 11)]
 
         public FontSetting AdditionalFont { get; set; } = new FontSetting { Size = 8 };
 
-        [Display(Name = "VerticalOffset", GroupName = "Display Settings", Order = 90)]
+        [Display(Name = "VerticalOffset", GroupName = "Display Settings", Order = 84)]
         public int confTextYOffset { get; set; } = -39;
 
-        [Display(Name = "Show Signal Counter", GroupName = "Display Settings", Order = 100)]
+        [Display(Name = "Show Signal Counter", GroupName = "Display Settings", Order = 1)]
         public bool ShowConfText { get; set; } = true;
 
 
-        [Display(Name = "Show Active Signals", GroupName = "Display Settings", Order = 110)]
+        [Display(Name = "Show Active Signals", GroupName = "Display Settings", Order = 2)]
         public bool ShowCondText { get; set; } = true;
 
+        [Display(Name = "Width", GroupName = "Display Settings", Order = 81)]
+        public int width { get; set; } = 372;
+
+        [Display(Name = "Height", GroupName = "Display Settings", Order = 82)]
+        public int height { get; set; } = 161;
 
         #endregion
 
@@ -849,7 +856,14 @@ namespace ATAS.Indicators.Technical
         {
             string confText = "";
             string condText = "";
-            
+
+            var textColor = TextColor.Convert();
+            Size size = new Size(width, height);
+
+            var confTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
+            var condTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
+
+
             if (ShowConfText) 
             { 
                 if (isBullishConf && isBearishConf)
@@ -866,7 +880,7 @@ namespace ATAS.Indicators.Technical
                 }
                 else
                 {
-                    confText = "Select a Signal";
+                    confText = "No Signal Selected";
                 }
 
 
@@ -904,15 +918,6 @@ namespace ATAS.Indicators.Technical
 
 
             }
-
-
-
-
-      
-            var textColor = TextColor.Convert();     
-            var size = context.MeasureString(confText, AdditionalFont.RenderObject) + context.MeasureString(condText, AdditionalFont.RenderObject);
-            var confTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
-            var condTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
 
 
             if (ShowConfText && !ShowCondText)
