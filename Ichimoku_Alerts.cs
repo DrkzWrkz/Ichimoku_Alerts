@@ -18,6 +18,31 @@ using System.Drawing;
 using Color = System.Windows.Media.Color;
 using OFT.Rendering.Context;
 using OFT.Rendering.Settings;
+using System.Runtime.CompilerServices;
+
+///////////////
+///Ideas 
+///Fix issue where sell/buy conditions does not update to false when in middle of cloud.
+///fix issue where confirmation counter does not update on change of settings.
+///if bullish or bearish conditions equals 0 then hide the respective counter.
+///Fix issue where "show active signals" activates both "show active signals" and "Show confirmation counter"
+///hide bullish counter if only bearish signals are selected and vice versa
+///pop up window that prompts user to select bullish or bearish signals if none are selected in settings.
+///////////////
+
+
+
+///////////////
+///Completed updates
+///Bullish conditions come before bearish conditions in alerts window
+///Can select which signals to look for.
+///Added ability to select between only Bullish or Bearish signals.
+///Fixed order of Select Alerts to go from most commonly used to less commonly used
+///Alerts only show bullish confirmations when bullish signals are selected n vice versa
+///optimized alert conitions using UpdateCounters()
+//////////////
+
+
 
 namespace ATAS.Indicators.Technical
 {
@@ -42,7 +67,10 @@ namespace ATAS.Indicators.Technical
         private bool isTk_Cross = true;
         private bool isKumo_Flip = true;
         private bool isLagging_Span = true;
-        private bool isCandle_Close = true;
+        private bool isKumoClose = true;
+        private bool isBullishConf = true;
+        private bool isBearishConf = true;
+
 
         [LocalizedCategory(typeof(Resources), "Select Alerts")]
         [DisplayName("Enable Alerts")]
@@ -56,8 +84,46 @@ namespace ATAS.Indicators.Technical
             {
                 _enable_Alerts = value;
                 UpdateCounters();
+                RecalculateValues();
+
             }
         }
+
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Enable Bullish Signals")]
+        public bool i_isBullishConf
+        {
+            get
+            {
+                return isBullishConf;
+            }
+            set
+            {
+                isBullishConf = value;
+                UpdateCounters();
+                RecalculateValues();
+
+            }
+        }
+
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Enable Bearish Signals")]
+
+        public bool i_isBearishConf
+        {
+            get
+            {
+                return isBearishConf;
+            }
+            set
+            {
+                isBearishConf = value;
+                UpdateCounters();
+                RecalculateValues();
+
+            }
+        }
+
 
 
         [LocalizedCategory(typeof(Resources), "Select Alerts")]
@@ -73,9 +139,29 @@ namespace ATAS.Indicators.Technical
             { 
                 isTk_Cross = value;
                 UpdateCounters();
+                RecalculateValues();
+
             }
-        
+
         }
+
+        [LocalizedCategory(typeof(Resources), "Select Alerts")]
+        [DisplayName("Close Above/Below Kumo")]
+
+        public bool i_Kumo_Close
+        {
+            get
+            {
+                return isKumoClose;
+            }
+            set
+            {
+                isKumoClose = value;
+                UpdateCounters();
+                RecalculateValues();
+            }
+        }
+
         [LocalizedCategory(typeof(Resources), "Select Alerts")]
         [DisplayName("Chikou Cross (Lagging)")]
 
@@ -89,6 +175,8 @@ namespace ATAS.Indicators.Technical
             { 
                 isLagging_Span= value;
                 UpdateCounters();
+                RecalculateValues();
+
             }
         }
         [LocalizedCategory(typeof(Resources), "Select Alerts")]
@@ -104,23 +192,7 @@ namespace ATAS.Indicators.Technical
             {
                 isKumo_Flip = value;
                 UpdateCounters();
-
-            }
-        }
-        [LocalizedCategory(typeof(Resources), "Select Alerts")]
-        [DisplayName("Close Above/Below Kumo")]
-
-        public bool i_Candle_Close
-        {
-            get
-            {
-                return isCandle_Close;
-            }
-            set
-            {
-                isCandle_Close = value;
-                UpdateCounters();
-
+                RecalculateValues();
             }
         }
         // ichimoku components
@@ -285,7 +357,6 @@ namespace ATAS.Indicators.Technical
             //IL_00ea: Unknown result type (might be due to invalid IL or missing references)
             //IL_0105: Unknown result type (might be due to invalid IL or missing references)
             //IL_014f: Unknown result type (might be due to invalid IL or missing references)
-            Font.PropertyChanged += (a, b) => RedrawChart();
             AdditionalFont.PropertyChanged += (a, b) => RedrawChart();
 
             
@@ -302,23 +373,26 @@ namespace ATAS.Indicators.Technical
             base.DataSeries.Add(_upSeries);
             base.DataSeries.Add(_downSeries);
         }
-        private int lastBarAlert = 0;
-        int closeAboveKumoCount = 0;
-        int tkBullishCount = 0;
-        int laggingBullishCount = 0;
-        int bullishCloudCount = 0;
-        int totalBullishConf = 0;
-        int closeBelowKumoCount = 0;
-        int tkBearishCount = 0;
-        int laggingBearishCount = 0;
-        int bearishCloudCount = 0;
-        int totalBearishConf = 0;
 
-        void UpdateCounters()
-        {
-            CalcBullishConf();
-            CalcBearishConf();
-        }
+        ///////////////////////////////////////////////
+        ///3rd solution for Confirmation Counter
+        //////////////////////////////////////////////
+        
+        
+        private int lastBarAlert = 0;
+        private int closeAboveKumoCount = 0;
+        private int tkBullishCount = 0;
+        private int laggingBullishCount = 0;
+        private int bullishCloudCount = 0;
+        private int totalBullishConf = 0;
+        private int closeBelowKumoCount = 0;
+        private int tkBearishCount = 0;
+        private int laggingBearishCount = 0;
+        private int bearishCloudCount = 0;
+        private int totalBearishConf = 0;
+
+        //// bullish conf counter
+
         void TkBullishCount()
         {
             if (tk_TriggeredBullish)
@@ -408,12 +482,31 @@ namespace ATAS.Indicators.Technical
             totalBearishConf = closeBelowKumoCount + tkBearishCount + laggingBearishCount + bearishCloudCount;
 
         }
+        void UpdateCounters()
+        {
+            CalcBullishConf();
+            CalcBearishConf();
+        }
+
         void ThrowConfirmations()
         {
-            AddAlert("Alert1", TimeFrame + " " + Instrument, totalBearishConf + " bearish condition(s) currently present\n" + totalBullishConf + " bullish condition(s) currently present", Colors.Black, Colors.Green);
+            if (isBullishConf && isBearishConf)
+            {
+                AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, totalBullishConf + " bullish condition(s) currently present\n" + totalBearishConf + " bearish condition(s) currently present", Colors.Black, Colors.Green);
+            }
+            else if (isBullishConf && !isBearishConf)
+            {
+                AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, totalBullishConf + " bullish condition(s) currently present", Colors.Black, Colors.Green);
+            }
+            else if (!isBullishConf && isBearishConf)
+            {
+                AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, totalBearishConf + " bearish condition(s) currently present", Colors.Black, Colors.Green);
+            }
 
         }
 
+
+        // ATAS ichimoku Code
         protected override void OnCalculate(int bar, decimal value)
         {
             IndicatorCandle candle = GetCandle(bar);
@@ -505,118 +598,197 @@ namespace ATAS.Indicators.Technical
             }
 
             //Alert Conditions
+            bool tkInvalid = _conversionLine[bar] == _baseLine[bar];
+            bool tk_Bullish = _conversionLine[bar] > _baseLine[bar] && !tkInvalid && !tk_TriggeredBullish;
+            bool tk_Bearish = _conversionLine[bar] < _baseLine[bar] && !tkInvalid && !tk_TriggeredBearish;
 
-            bool tk_Bullish = _conversionLine[bar] > _baseLine[bar] && !tk_TriggeredBullish;
-            bool tk_Bearish = _conversionLine[bar] < _baseLine[bar] && !tk_TriggeredBearish;
-            bool lagging_Bullish = _laggingSpan[bar] > _leadLine1[bar - Displacement] && _laggingSpan[bar] > _leadLine2[bar - Displacement] && !lagging_Bullish_Triggered;
-            bool lagging_Bearish = _laggingSpan[bar] < _leadLine1[bar - Displacement] && _laggingSpan[bar] < _leadLine2[bar - Displacement] && !lagging_Bearish_Triggered;
-            bool bullishCloud = _leadLine1[bar] > _leadLine2[bar] && !bullishCloud_Triggered;
-            bool bearishCloud = _leadLine1[bar] < _leadLine2[bar] && !bearishCloud_Triggered;
-            bool close_Above_Kumo = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar] && !above_Kumo_Triggered;
-            bool close_Below_Kumo = _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] && !below_Kumo_Triggered;
+            bool laggingSpanInvalid = _laggingSpan[bar] > _leadLine1[bar - Displacement] && _laggingSpan[bar] < _leadLine2[bar - Displacement] || _laggingSpan[bar] < _leadLine1[bar - Displacement] && _laggingSpan[bar] > _leadLine2[bar - Displacement];
+            bool lagging_Bullish = _laggingSpan[bar] > _leadLine1[bar - Displacement] && _laggingSpan[bar] > _leadLine2[bar - Displacement] && !laggingSpanInvalid && !lagging_Bullish_Triggered;
+            bool lagging_Bearish = _laggingSpan[bar] < _leadLine1[bar - Displacement] && _laggingSpan[bar] < _leadLine2[bar - Displacement] && !laggingSpanInvalid && !lagging_Bearish_Triggered;
 
+            bool cloudInvalid = _leadLine1[bar] == _leadLine2[bar];
+            bool bullishCloud = _leadLine1[bar] > _leadLine2[bar] && !cloudInvalid && !bullishCloud_Triggered;
+            bool bearishCloud = _leadLine1[bar] < _leadLine2[bar] && !cloudInvalid && !bearishCloud_Triggered;
 
-            ///////////////////////////////////////////////
-            ///3rd solution for Confirmation Counter
-            //////////////////////////////////////////////
+            bool kumoCloseInvalid = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] || _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar];
+            bool close_Above_Kumo = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar] && !kumoCloseInvalid && !above_Kumo_Triggered;
+            bool close_Below_Kumo = _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] && !kumoCloseInvalid && !below_Kumo_Triggered;
 
-            //// bullish conf counter
-           
-
-            //// Alert Conditions
+            //// Alerts logic
             if (enable_Alerts && CurrentBar - 1 == bar && lastBarAlert != bar)
             {
 
-                if (close_Above_Kumo && isCandle_Close)
+                if (tkInvalid && isTk_Cross) 
                 {
+                    if (tk_TriggeredBullish)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Tenkan Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
+                    }
+                    if (tk_TriggeredBearish)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Tenkan Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
+                    }
                     lastBarAlert = bar;
-                    above_Kumo_Triggered = true;
-                    below_Kumo_Triggered = false;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Close Above CLoud" , Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
-                    ThrowConfirmations();
-                }
-                else if (close_Below_Kumo && isCandle_Close)
-                {
-                    lastBarAlert = bar;
-                    above_Kumo_Triggered = false;
-                    below_Kumo_Triggered = true;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Close Below CLoud", Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
-                    ThrowConfirmations();
+                    tk_Bullish = false;
+                    tk_Bearish = false;
+                    tk_TriggeredBullish = false;
+                    tk_TriggeredBearish = false;
+                    UpdateCounters();
+                    
 
                 }
-
-                if (tk_Bullish && isTk_Cross)
+                else if (tk_Bullish && isTk_Cross && isBullishConf)
                 {
                     lastBarAlert = bar;
                     tk_TriggeredBullish = true;
                     tk_TriggeredBearish = false;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bullish Crossover", Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Crossover", Colors.Black, Colors.Green);
+                    UpdateCounters();
                     ThrowConfirmations();
 
 
                 }
-                else if (tk_Bearish && isTk_Cross)
+                else if (tk_Bearish && isTk_Cross && isBearishConf)
                 {
                     lastBarAlert = bar;
                     tk_TriggeredBullish = false;
                     tk_TriggeredBearish = true;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bearish Crossover", Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
+                    AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Crossover", Colors.Black, Colors.Green);
+                    UpdateCounters();
                     ThrowConfirmations();
                 }
 
+                if (laggingSpanInvalid && isLagging_Span) 
+                {
+                    if (lagging_Bullish_Triggered)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Lagging Span Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
 
-                if (lagging_Bullish && isLagging_Span)
+                    }
+                    if (lagging_Bearish_Triggered)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Lagging Span Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
+
+                    }
+                    lastBarAlert = bar;
+                    lagging_Bullish = false;
+                    lagging_Bearish = false;
+                    lagging_Bullish_Triggered = false;
+                    lagging_Bearish_Triggered = false;
+                    UpdateCounters();
+                }
+                else if (lagging_Bullish && isLagging_Span && isBullishConf)
                 {
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = true;
                     lagging_Bearish_Triggered = false;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Lagging Span is Bullish", Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
+                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bullish", Colors.Black, Colors.Green);
+                    UpdateCounters();
                     ThrowConfirmations();
                 }
-                else if (lagging_Bearish && isLagging_Span)
+                else if (lagging_Bearish && isLagging_Span && isBearishConf)
                 {
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = false;
                     lagging_Bearish_Triggered = true;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Lagging Span is Bearish", Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
+                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bearish", Colors.Black, Colors.Green);
+                    UpdateCounters();
                     ThrowConfirmations();
                 }
 
-                if (bullishCloud && isKumo_Flip)
+                if (cloudInvalid && isKumo_Flip)
+                {
+                    if (bullishCloud_Triggered)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Cloud Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
+                    }
+                    if (bearishCloud_Triggered)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Cloud Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
+                    }
+
+                    lastBarAlert = bar;
+                    bullishCloud = false;
+                    bearishCloud = false;
+                    bullishCloud_Triggered = false;
+                    bearishCloud_Triggered = false;
+
+
+                }
+                else if (bullishCloud && isKumo_Flip && isBullishConf)
                 {
                     lastBarAlert = bar;
                     bullishCloud_Triggered = true;
                     bearishCloud_Triggered = false;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bullish Cloud", Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
+                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Cloud", Colors.Black, Colors.Green);
+                    UpdateCounters();
                     ThrowConfirmations();
                 }
-                else if (bearishCloud && isKumo_Flip)
+                else if (bearishCloud && isKumo_Flip && isBearishConf)
                 {
                     lastBarAlert = bar;
                     bullishCloud_Triggered = false;
                     bearishCloud_Triggered = true;
-                    AddAlert("Alert1", TimeFrame + " " + Instrument, "Bearish Cloud", Colors.Black, Colors.Green);
-                    CalcBullishConf();
-                    CalcBearishConf();
+                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Cloud", Colors.Black, Colors.Green);
+                    UpdateCounters();
                     ThrowConfirmations();
 
                 }
+
+                if (kumoCloseInvalid && isKumoClose)
+                {
+                    if (above_Kumo_Triggered)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Close Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
+
+                    }
+                    if (below_Kumo_Triggered)
+                    {
+                        AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Close Invalidated", Colors.Black, Colors.Green);
+                        ThrowConfirmations();
+
+                    }
+                    lastBarAlert = bar;
+                    close_Above_Kumo = false;
+                    close_Below_Kumo = false;
+                    above_Kumo_Triggered = false;
+                    below_Kumo_Triggered = false;
+
+                    UpdateCounters();
+
+
+                }
+                else if (close_Above_Kumo && isKumoClose && isBullishConf)
+                {
+                    lastBarAlert = bar;
+                    above_Kumo_Triggered = true;
+                    below_Kumo_Triggered = false;
+                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Above CLoud", Colors.Black, Colors.Green);
+                    UpdateCounters();
+                    ThrowConfirmations();
+                }
+                else if (close_Below_Kumo && isKumoClose && isBearishConf)
+                {
+                    lastBarAlert = bar;
+                    above_Kumo_Triggered = false;
+                    below_Kumo_Triggered = true;
+                    AddAlert("Alert1",  ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Below CLoud", Colors.Black, Colors.Green);
+                    UpdateCounters();
+                    ThrowConfirmations();
+
+                }
+
             }
         }
+
+
         ////////////////////////////
         ///display logic
         /////////////////////////////
@@ -651,33 +823,55 @@ namespace ATAS.Indicators.Technical
         [Display(Name = "HorizontalOffset", GroupName = "Display Settings", Order = 30)]
         public int HorizontalOffset { get; set; } = -302;
 
-        [Display(Name = "VerticalOffset", GroupName = "Display Settings", Order = 40)]
-        public int VerticalOffset { get; set; } = 11;
+        public int VerticalOffset = 11;
 
         
-        public FontSetting Font { get; set; } = new FontSetting { Size = 60, Bold = true };
 
   
-        [Display(Name = "Font", GroupName = "Display Settings", Order = 90)]
+        [Display(Name = "Font", GroupName = "Display Settings", Order = 80)]
 
         public FontSetting AdditionalFont { get; set; } = new FontSetting { Size = 8 };
 
         [Display(Name = "VerticalOffset", GroupName = "Display Settings", Order = 90)]
         public int confTextYOffset { get; set; } = -39;
 
-        [Display(Name = "Show Active Signals", GroupName = "Display Settings", Order = 100)]
+        [Display(Name = "Show Signal Counter", GroupName = "Display Settings", Order = 100)]
+        public bool ShowConfText { get; set; } = true;
+
+
+        [Display(Name = "Show Active Signals", GroupName = "Display Settings", Order = 110)]
         public bool ShowCondText { get; set; } = true;
 
-        [Display(Name = "Show Signal Counter", GroupName = "Display Settings", Order = 110)]
-        public bool ShowConfText { get; set; } = true;
 
         #endregion
 
         protected override void OnRender(RenderContext context, DrawingLayouts layout)
         {
-            string confText = "Bullish Signals: " + totalBullishConf + "\nBearish Signals: " + totalBearishConf + "\n";
+            string confText = "";
             string condText = "";
             
+            if (ShowConfText) 
+            { 
+                if (isBullishConf && isBearishConf)
+                {
+                    confText = "Bullish Signals: " + totalBullishConf + "\nBearish Signals: " + totalBearishConf + "\n";
+                }
+                else if (isBullishConf && !isBearishConf)
+                {
+                    confText = "Bullish Signals: " + totalBullishConf + "\n";
+                }
+                else if (!isBullishConf && isBearishConf)
+                {
+                    confText = "Bearish Signals: " + totalBearishConf + "\n";
+                }
+                else
+                {
+                    confText = "Select a Signal";
+                }
+
+
+            }
+
             if (ShowCondText) 
             {
 
@@ -712,41 +906,26 @@ namespace ATAS.Indicators.Technical
             }
 
 
-            var showSecondLine = !string.IsNullOrWhiteSpace(confText);
-            if (!showSecondLine)
-                return;
+
 
       
-            var textColor = TextColor.Convert();
-            var mainTextRectangle = new Rectangle();
-            var confTextRectangle = new Rectangle();
-
-            if (showSecondLine && ShowConfText && !string.IsNullOrEmpty(confText))
-            {
-                var size = context.MeasureString(confText, AdditionalFont.RenderObject);
-                confTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
-            }
-
-            if (showSecondLine && ShowCondText && !string.IsNullOrEmpty(condText))
-            {
-                var size = context.MeasureString(condText, AdditionalFont.RenderObject);
-                confTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
-            }
+            var textColor = TextColor.Convert();     
+            var size = context.MeasureString(confText, AdditionalFont.RenderObject) + context.MeasureString(condText, AdditionalFont.RenderObject);
+            var confTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
+            var condTextRectangle = new Rectangle(0, 0, (int)size.Width, (int)size.Height);
 
 
-
-            if (mainTextRectangle.Height > 0 && confTextRectangle.Height > 0 )
+            if (ShowConfText && !ShowCondText)
             {
                 int secondLineX;
                 var y = 0;
 
-                var totalHeight = mainTextRectangle.Height + confTextRectangle.Height + confTextYOffset;
-
+                var totalHeight = confTextRectangle.Height + condTextRectangle.Height + confTextYOffset;
                 switch (TextLocation)
                 {
                     case Location.Center:
                         {
-                            secondLineX = ChartInfo.PriceChartContainer.Region.Width / 2 - confTextRectangle.Width / 2 + HorizontalOffset;
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width / 2 - condTextRectangle.Width / 2 + HorizontalOffset;
                             y = ChartInfo.PriceChartContainer.Region.Height / 2 - totalHeight / 2 + VerticalOffset;
 
                             break;
@@ -758,7 +937,7 @@ namespace ATAS.Indicators.Technical
                         }
                     case Location.TopRight:
                         {
-                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - confTextRectangle.Width + HorizontalOffset;
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - condTextRectangle.Width + HorizontalOffset;
 
                             break;
                         }
@@ -771,7 +950,7 @@ namespace ATAS.Indicators.Technical
                         }
                     case Location.BottomRight:
                         {
-                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - confTextRectangle.Width + HorizontalOffset;
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - condTextRectangle.Width + HorizontalOffset;
                             y = ChartInfo.PriceChartContainer.Region.Height - totalHeight + VerticalOffset;
 
                             break;
@@ -780,45 +959,135 @@ namespace ATAS.Indicators.Technical
                         throw new ArgumentOutOfRangeException();
                 }
 
-                context.DrawString(confText + "\n" + condText, AdditionalFont.RenderObject, textColor, secondLineX, y + mainTextRectangle.Height + confTextYOffset);
+                context.DrawString(confText, AdditionalFont.RenderObject, textColor, secondLineX, y + confTextRectangle.Height + confTextYOffset);
             }
-            else if (confTextRectangle.Height > 0)
+            else if (!ShowConfText && ShowCondText)
             {
-                DrawString(context, confText +"\n"+ condText, AdditionalFont.RenderObject, textColor, confTextRectangle);
+                int secondLineX;
+                var y = 0;
+
+                var totalHeight = confTextRectangle.Height + condTextRectangle.Height + confTextYOffset;
+                switch (TextLocation)
+                {
+                    case Location.Center:
+                        {
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width / 2 - condTextRectangle.Width / 2 + HorizontalOffset;
+                            y = ChartInfo.PriceChartContainer.Region.Height / 2 - totalHeight / 2 + VerticalOffset;
+
+                            break;
+                        }
+                    case Location.TopLeft:
+                        {
+                            secondLineX = HorizontalOffset;
+                            break;
+                        }
+                    case Location.TopRight:
+                        {
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - condTextRectangle.Width + HorizontalOffset;
+
+                            break;
+                        }
+                    case Location.BottomLeft:
+                        {
+                            secondLineX = HorizontalOffset;
+                            y = ChartInfo.PriceChartContainer.Region.Height - totalHeight + VerticalOffset;
+
+                            break;
+                        }
+                    case Location.BottomRight:
+                        {
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - condTextRectangle.Width + HorizontalOffset;
+                            y = ChartInfo.PriceChartContainer.Region.Height - totalHeight + VerticalOffset;
+
+                            break;
+                        }
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                context.DrawString(condText, AdditionalFont.RenderObject, textColor, secondLineX, y + confTextRectangle.Height + confTextYOffset);
+            }
+            else if (ShowConfText && ShowCondText)
+            {
+                int secondLineX;
+                var y = 0;
+
+                var totalHeight = confTextRectangle.Height + condTextRectangle.Height + confTextYOffset;
+                switch (TextLocation)
+                {
+                    case Location.Center:
+                        {
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width / 2 - condTextRectangle.Width / 2 + HorizontalOffset;
+                            y = ChartInfo.PriceChartContainer.Region.Height / 2 - totalHeight / 2 + VerticalOffset;
+
+                            break;
+                        }
+                    case Location.TopLeft:
+                        {
+                            secondLineX = HorizontalOffset;
+                            break;
+                        }
+                    case Location.TopRight:
+                        {
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - condTextRectangle.Width + HorizontalOffset;
+
+                            break;
+                        }
+                    case Location.BottomLeft:
+                        {
+                            secondLineX = HorizontalOffset;
+                            y = ChartInfo.PriceChartContainer.Region.Height - totalHeight + VerticalOffset;
+
+                            break;
+                        }
+                    case Location.BottomRight:
+                        {
+                            secondLineX = ChartInfo.PriceChartContainer.Region.Width - condTextRectangle.Width + HorizontalOffset;
+                            y = ChartInfo.PriceChartContainer.Region.Height - totalHeight + VerticalOffset;
+
+                            break;
+                        }
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                context.DrawString(confText + "\n" + condText, AdditionalFont.RenderObject, textColor, secondLineX, y + confTextRectangle.Height + confTextYOffset);
             }
 
-            
-        }
-        
 
-        private void DrawString(RenderContext context, string text, RenderFont font, System.Drawing.Color color, Rectangle rectangle)
+
+
+        }
+
+
+        private void DrawString(RenderContext context, string text, RenderFont AdditionalFont, System.Drawing.Color color, Rectangle rectangle)
         {
             switch (TextLocation)
             {
                 case Location.Center:
                     {
-                        context.DrawString(text, font, color, ChartInfo.PriceChartContainer.Region.Width / 2 - rectangle.Width / 2 + HorizontalOffset,
+                        context.DrawString(text, AdditionalFont, color, ChartInfo.PriceChartContainer.Region.Width / 2 - rectangle.Width / 2 + HorizontalOffset,
                                            ChartInfo.PriceChartContainer.Region.Height / 2 - rectangle.Height / 2 + VerticalOffset);
                         break;
                     }
                 case Location.TopLeft:
                     {
-                        context.DrawString(text, font, color, HorizontalOffset, VerticalOffset);
+                        context.DrawString(text, AdditionalFont, color, HorizontalOffset, VerticalOffset);
                         break;
                     }
                 case Location.TopRight:
                     {
-                        context.DrawString(text, font, color, ChartInfo.PriceChartContainer.Region.Width - rectangle.Width + HorizontalOffset, VerticalOffset);
+                        context.DrawString(text, AdditionalFont, color, ChartInfo.PriceChartContainer.Region.Width - rectangle.Width + HorizontalOffset, VerticalOffset);
                         break;
                     }
                 case Location.BottomLeft:
                     {
-                        context.DrawString(text, font, color, HorizontalOffset, ChartInfo.PriceChartContainer.Region.Height - rectangle.Height + VerticalOffset);
+                        context.DrawString(text, AdditionalFont, color, HorizontalOffset, ChartInfo.PriceChartContainer.Region.Height - rectangle.Height + VerticalOffset);
                         break;
                     }
                 case Location.BottomRight:
                     {
-                        context.DrawString(text, font, color, ChartInfo.PriceChartContainer.Region.Width - rectangle.Width + HorizontalOffset,
+                        context.DrawString(text, AdditionalFont, color, ChartInfo.PriceChartContainer.Region.Width - rectangle.Width + HorizontalOffset,
                                            ChartInfo.PriceChartContainer.Region.Height - rectangle.Height + VerticalOffset);
                         break;
                     }
