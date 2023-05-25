@@ -28,8 +28,6 @@ using System.Runtime.CompilerServices;
 
 ///////////////
 ///Issues
-///if all alert conditions are off the Counter only updates once when selecting a condition and will not update again until next bar 
-///Confirmation counter does not update when conditions are selected/deselected
 ///////////////
 
 
@@ -47,6 +45,8 @@ using System.Runtime.CompilerServices;
 ///"No Siganls Selected" shows if bullish & bearish signals are not selected in settings.
 ///Conditions are now hidden when deselected
 ///if total bullish or bearish conditions equals 0 then the respective counter displays "No (Bullish/Bearish) Signals".
+///fixed issue where if all alert conditions are off the Counter only updates once when selecting a condition and will not update again until next bar 
+///fixed issue where Confirmation counter does not update when conditions are selected/deselected
 //////////////
 
 
@@ -628,6 +628,133 @@ namespace ATAS.Indicators.Technical
             bool kumoCloseInvalid = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] || _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar];
             bool close_Above_Kumo = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar] && !kumoCloseInvalid && !above_Kumo_Triggered;
             bool close_Below_Kumo = _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] && !kumoCloseInvalid && !below_Kumo_Triggered;
+
+            ////////////////////////
+            ///attempt to fix counter
+            /////////////////////////
+
+
+            /// update counters when option is enabled
+            
+            if (isTk_Cross)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isKumoClose)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isKumo_Flip)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isLagging_Span)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isBullishConf)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isBearishConf)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (enable_Alerts)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+
+            /// reset counters when option is deselected
+            if (!isTk_Cross)
+            {
+                tk_TriggeredBullish = false;
+                tk_TriggeredBearish = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isKumoClose) 
+            {
+                above_Kumo_Triggered = false;
+                below_Kumo_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isKumo_Flip)
+            {
+                bullishCloud_Triggered = false;
+                bearishCloud_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isLagging_Span)
+            {
+                lagging_Bullish_Triggered = false;
+                lagging_Bearish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isBullishConf)
+            {
+                tk_TriggeredBullish = false;
+                above_Kumo_Triggered = false;
+                bullishCloud_Triggered = false;
+                lagging_Bullish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isBearishConf)
+            {
+                tk_TriggeredBearish = false;
+                below_Kumo_Triggered = false;
+                bearishCloud_Triggered = false;
+                lagging_Bearish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!enable_Alerts)
+            {
+                tk_TriggeredBullish = false;
+                above_Kumo_Triggered = false;
+                bullishCloud_Triggered = false;
+                lagging_Bullish_Triggered = false;
+                tk_TriggeredBearish = false;
+                below_Kumo_Triggered = false;
+                bearishCloud_Triggered = false;
+                lagging_Bearish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+
+            void ResetAlerts()
+            {
+                lastBarAlert = 0;
+            }
+
+            //////////////////////////
+
+
 
             //// Alerts logic
             if (enable_Alerts && CurrentBar - 1 == bar && lastBarAlert != bar)
