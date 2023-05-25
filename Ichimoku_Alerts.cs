@@ -28,8 +28,6 @@ using System.Runtime.CompilerServices;
 
 ///////////////
 ///Issues
-///if all alert conditions are off the Counter only updates once when selecting a condition and will not update again until next bar 
-///Confirmation counter does not update when conditions are selected/deselected
 ///////////////
 
 
@@ -47,6 +45,8 @@ using System.Runtime.CompilerServices;
 ///"No Siganls Selected" shows if bullish & bearish signals are not selected in settings.
 ///Conditions are now hidden when deselected
 ///if total bullish or bearish conditions equals 0 then the respective counter displays "No (Bullish/Bearish) Signals".
+///fixed issue where if all alert conditions are off the Counter only updates once when selecting a condition and will not update again until next bar 
+///fixed issue where Confirmation counter does not update when conditions are selected/deselected
 //////////////
 
 
@@ -629,6 +629,133 @@ namespace ATAS.Indicators.Technical
             bool close_Above_Kumo = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar] && !kumoCloseInvalid && !above_Kumo_Triggered;
             bool close_Below_Kumo = _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] && !kumoCloseInvalid && !below_Kumo_Triggered;
 
+            ////////////////////////
+            ///attempt to fix counter update issue
+            /////////////////////////
+
+
+            /// update counters when option is enabled
+            
+            if (isTk_Cross)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isKumoClose)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isKumo_Flip)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isLagging_Span)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isBullishConf)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (isBearishConf)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (enable_Alerts)
+            {
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+
+            /// reset counters when option is deselected
+            if (!isTk_Cross)
+            {
+                tk_TriggeredBullish = false;
+                tk_TriggeredBearish = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isKumoClose) 
+            {
+                above_Kumo_Triggered = false;
+                below_Kumo_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isKumo_Flip)
+            {
+                bullishCloud_Triggered = false;
+                bearishCloud_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isLagging_Span)
+            {
+                lagging_Bullish_Triggered = false;
+                lagging_Bearish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isBullishConf)
+            {
+                tk_TriggeredBullish = false;
+                above_Kumo_Triggered = false;
+                bullishCloud_Triggered = false;
+                lagging_Bullish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!isBearishConf)
+            {
+                tk_TriggeredBearish = false;
+                below_Kumo_Triggered = false;
+                bearishCloud_Triggered = false;
+                lagging_Bearish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+            if (!enable_Alerts)
+            {
+                tk_TriggeredBullish = false;
+                above_Kumo_Triggered = false;
+                bullishCloud_Triggered = false;
+                lagging_Bullish_Triggered = false;
+                tk_TriggeredBearish = false;
+                below_Kumo_Triggered = false;
+                bearishCloud_Triggered = false;
+                lagging_Bearish_Triggered = false;
+                ResetAlerts();
+                UpdateCounters();
+
+            }
+
+            void ResetAlerts()
+            {
+                lastBarAlert = 0;
+            }
+
+            //////////////////////////
+
+
+
             //// Alerts logic
             if (enable_Alerts && CurrentBar - 1 == bar && lastBarAlert != bar)
             {
@@ -638,19 +765,29 @@ namespace ATAS.Indicators.Technical
                     if (tk_TriggeredBullish)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Tenkan Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        tk_Bullish = false;
+                        tk_Bearish = false;
+                        tk_TriggeredBullish = false;
+                        tk_TriggeredBearish = false;
+                        UpdateCounters();
                         ThrowConfirmations();
+
                     }
                     if (tk_TriggeredBearish)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Tenkan Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        tk_Bullish = false;
+                        tk_Bearish = false;
+                        tk_TriggeredBullish = false;
+                        tk_TriggeredBearish = false;
+                        UpdateCounters();
                         ThrowConfirmations();
+
                     }
-                    lastBarAlert = bar;
-                    tk_Bullish = false;
-                    tk_Bearish = false;
-                    tk_TriggeredBullish = false;
-                    tk_TriggeredBearish = false;
-                    UpdateCounters();
+
+
 
 
                 }
@@ -680,21 +817,28 @@ namespace ATAS.Indicators.Technical
                     if (lagging_Bullish_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Lagging Span Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        lagging_Bullish = false;
+                        lagging_Bearish = false;
+                        lagging_Bullish_Triggered = false;
+                        lagging_Bearish_Triggered = false;
+                        UpdateCounters();
                         ThrowConfirmations();
 
                     }
                     if (lagging_Bearish_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Lagging Span Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        lagging_Bullish = false;
+                        lagging_Bearish = false;
+                        lagging_Bullish_Triggered = false;
+                        lagging_Bearish_Triggered = false;
+                        UpdateCounters();
                         ThrowConfirmations();
 
                     }
-                    lastBarAlert = bar;
-                    lagging_Bullish = false;
-                    lagging_Bearish = false;
-                    lagging_Bullish_Triggered = false;
-                    lagging_Bearish_Triggered = false;
-                    UpdateCounters();
+
                 }
                 else if (lagging_Bullish && isLagging_Span && isBullishConf)
                 {
@@ -720,19 +864,25 @@ namespace ATAS.Indicators.Technical
                     if (bullishCloud_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Cloud Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        bullishCloud = false;
+                        bearishCloud = false;
+                        bullishCloud_Triggered = false;
+                        bearishCloud_Triggered = false;
                         ThrowConfirmations();
+
                     }
                     if (bearishCloud_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Cloud Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        bullishCloud = false;
+                        bearishCloud = false;
+                        bullishCloud_Triggered = false;
+                        bearishCloud_Triggered = false;
                         ThrowConfirmations();
-                    }
 
-                    lastBarAlert = bar;
-                    bullishCloud = false;
-                    bearishCloud = false;
-                    bullishCloud_Triggered = false;
-                    bearishCloud_Triggered = false;
+                    }
 
 
                 }
@@ -761,23 +911,27 @@ namespace ATAS.Indicators.Technical
                     if (above_Kumo_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Close Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        close_Above_Kumo = false;
+                        close_Below_Kumo = false;
+                        above_Kumo_Triggered = false;
+                        below_Kumo_Triggered = false;
+                        UpdateCounters();
                         ThrowConfirmations();
 
                     }
                     if (below_Kumo_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Close Invalidated", Colors.Black, Colors.Green);
+                        lastBarAlert = bar;
+                        close_Above_Kumo = false;
+                        close_Below_Kumo = false;
+                        above_Kumo_Triggered = false;
+                        below_Kumo_Triggered = false;
+                        UpdateCounters();
                         ThrowConfirmations();
 
                     }
-                    lastBarAlert = bar;
-                    close_Above_Kumo = false;
-                    close_Below_Kumo = false;
-                    above_Kumo_Triggered = false;
-                    below_Kumo_Triggered = false;
-
-                    UpdateCounters();
-
 
                 }
                 else if (close_Above_Kumo && isKumoClose && isBullishConf)
