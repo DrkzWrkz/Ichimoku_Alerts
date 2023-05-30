@@ -62,18 +62,22 @@ namespace ATAS.Indicators.Technical
         #region Variables & Inputs
 
         // is conditions triggered?
+        private bool invalid_Tk_Triggered = false;
         private bool tk_TriggeredBullish = false;
         private bool tk_TriggeredBearish = false;
+        private bool invalid_Lagging_Triggered = false;
         private bool lagging_Bullish_Triggered = false;
         private bool lagging_Bearish_Triggered = false;
+        private bool invalid_Cloud_Triggered = false;
         private bool bullishCloud_Triggered = false;
         private bool bearishCloud_Triggered = false;
+        private bool invalid_Close_Triggered = false;
         private bool above_Kumo_Triggered = false;
         private bool below_Kumo_Triggered = false;
 
         // select desired signals input
         private bool isTk_Cross = true;
-        private bool isKumo_Flip = true;
+        private bool isCloud_Flip = true;
         private bool isLagging_Span = true;
         private bool isKumoClose = true;
         private bool isBullishConf = true;
@@ -194,11 +198,11 @@ namespace ATAS.Indicators.Technical
         {
             get
             {
-                return isKumo_Flip;
+                return isCloud_Flip;
             }
             set
             {
-                isKumo_Flip = value;
+                isCloud_Flip = value;
                 UpdateCounters();
                 RecalculateValues();
             }
@@ -613,21 +617,27 @@ namespace ATAS.Indicators.Technical
             #region Alert Logic
 
             //Alert Conditions
-            bool tkInvalid = _conversionLine[bar] == _baseLine[bar];
+            bool tkInvalid = _conversionLine[bar] == _baseLine[bar] && !invalid_Tk_Triggered;
             bool tk_Bullish = _conversionLine[bar] > _baseLine[bar] && !tkInvalid && !tk_TriggeredBullish;
             bool tk_Bearish = _conversionLine[bar] < _baseLine[bar] && !tkInvalid && !tk_TriggeredBearish;
 
-            bool laggingSpanInvalid = _laggingSpan[bar] > _leadLine1[bar - Displacement] && _laggingSpan[bar] < _leadLine2[bar - Displacement] || _laggingSpan[bar] < _leadLine1[bar - Displacement] && _laggingSpan[bar] > _leadLine2[bar - Displacement];
-            bool lagging_Bullish = _laggingSpan[bar] > _leadLine1[bar - Displacement] && _laggingSpan[bar] > _leadLine2[bar - Displacement] && !laggingSpanInvalid && !lagging_Bullish_Triggered;
-            bool lagging_Bearish = _laggingSpan[bar] < _leadLine1[bar - Displacement] && _laggingSpan[bar] < _leadLine2[bar - Displacement] && !laggingSpanInvalid && !lagging_Bearish_Triggered;
+            bool laggingSpanInvalid = 
+                _laggingSpan[bar] > _leadLine1[bar - Displacement] && _laggingSpan[bar] < _leadLine2[bar - Displacement] && !invalid_Lagging_Triggered || _laggingSpan[bar] < _leadLine1[bar - Displacement] && _laggingSpan[bar] > _leadLine2[bar - Displacement] && !invalid_Lagging_Triggered;
+            bool lagging_Bullish = 
+                _laggingSpan[bar] > _leadLine1[bar - Displacement] && _laggingSpan[bar] > _leadLine2[bar - Displacement] && !laggingSpanInvalid && !lagging_Bullish_Triggered;
+            bool lagging_Bearish = 
+                _laggingSpan[bar] < _leadLine1[bar - Displacement] && _laggingSpan[bar] < _leadLine2[bar - Displacement] && !laggingSpanInvalid && !lagging_Bearish_Triggered;
 
-            bool cloudInvalid = _leadLine1[bar] == _leadLine2[bar];
+            bool cloudInvalid = _leadLine1[bar] == _leadLine2[bar] && !invalid_Cloud_Triggered;
             bool bullishCloud = _leadLine1[bar] > _leadLine2[bar] && !cloudInvalid && !bullishCloud_Triggered;
             bool bearishCloud = _leadLine1[bar] < _leadLine2[bar] && !cloudInvalid && !bearishCloud_Triggered;
 
-            bool kumoCloseInvalid = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] || _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar];
-            bool close_Above_Kumo = _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar] && !kumoCloseInvalid && !above_Kumo_Triggered;
-            bool close_Below_Kumo = _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] && !kumoCloseInvalid && !below_Kumo_Triggered;
+            bool kumoCloseInvalid = 
+                _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] && !invalid_Close_Triggered|| _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar] && !invalid_Close_Triggered;
+            bool close_Above_Kumo = 
+                _laggingSpan[bar] > _leadLine1[bar] && _laggingSpan[bar] > _leadLine2[bar] && !kumoCloseInvalid && !above_Kumo_Triggered;
+            bool close_Below_Kumo = 
+                _laggingSpan[bar] < _leadLine1[bar] && _laggingSpan[bar] < _leadLine2[bar] && !kumoCloseInvalid && !below_Kumo_Triggered;
 
             ////////////////////////
             ///attempt to fix counter update issue
@@ -648,7 +658,7 @@ namespace ATAS.Indicators.Technical
                 UpdateCounters();
 
             }
-            if (isKumo_Flip)
+            if (isCloud_Flip)
             {
                 ResetAlerts();
                 UpdateCounters();
@@ -696,7 +706,7 @@ namespace ATAS.Indicators.Technical
                 UpdateCounters();
 
             }
-            if (!isKumo_Flip)
+            if (!isCloud_Flip)
             {
                 bullishCloud_Triggered = false;
                 bearishCloud_Triggered = false;
@@ -760,8 +770,9 @@ namespace ATAS.Indicators.Technical
             if (enable_Alerts && CurrentBar - 1 == bar && lastBarAlert != bar)
             {
 
-                if (tkInvalid && isTk_Cross)
+                if (tkInvalid && isTk_Cross && !invalid_Tk_Triggered)
                 {
+                    invalid_Tk_Triggered = true;
                     if (tk_TriggeredBullish)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Tenkan Invalidated", Colors.Black, Colors.Green);
@@ -796,6 +807,7 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     tk_TriggeredBullish = true;
                     tk_TriggeredBearish = false;
+                    invalid_Tk_Triggered = false;
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Crossover", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
@@ -807,13 +819,16 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     tk_TriggeredBullish = false;
                     tk_TriggeredBearish = true;
+                    invalid_Tk_Triggered = false;
+
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Crossover", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
                 }
 
-                if (laggingSpanInvalid && isLagging_Span)
+                if (laggingSpanInvalid && isLagging_Span && !invalid_Lagging_Triggered)
                 {
+                    invalid_Lagging_Triggered = true;
                     if (lagging_Bullish_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Lagging Span Invalidated", Colors.Black, Colors.Green);
@@ -845,6 +860,8 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = true;
                     lagging_Bearish_Triggered = false;
+                    invalid_Lagging_Triggered = false;
+
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bullish", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
@@ -854,13 +871,16 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     lagging_Bullish_Triggered = false;
                     lagging_Bearish_Triggered = true;
+                    invalid_Lagging_Triggered = false;
+
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Lagging Span is Bearish", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
                 }
 
-                if (cloudInvalid && isKumo_Flip)
+                if (cloudInvalid && isCloud_Flip && !invalid_Cloud_Triggered)
                 {
+                    invalid_Cloud_Triggered = true;
                     if (bullishCloud_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Cloud Invalidated", Colors.Black, Colors.Green);
@@ -886,28 +906,32 @@ namespace ATAS.Indicators.Technical
 
 
                 }
-                else if (bullishCloud && isKumo_Flip && isBullishConf)
+                else if (bullishCloud && isCloud_Flip && isBullishConf)
                 {
                     lastBarAlert = bar;
                     bullishCloud_Triggered = true;
                     bearishCloud_Triggered = false;
+                    invalid_Cloud_Triggered = false;
+
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Cloud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
                 }
-                else if (bearishCloud && isKumo_Flip && isBearishConf)
+                else if (bearishCloud && isCloud_Flip && isBearishConf)
                 {
                     lastBarAlert = bar;
                     bullishCloud_Triggered = false;
                     bearishCloud_Triggered = true;
+                    invalid_Cloud_Triggered = false;
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bearish Cloud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
 
                 }
 
-                if (kumoCloseInvalid && isKumoClose)
+                if (kumoCloseInvalid && isKumoClose && !invalid_Close_Triggered)
                 {
+                    invalid_Close_Triggered = true;
                     if (above_Kumo_Triggered)
                     {
                         AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Bullish Close Invalidated", Colors.Black, Colors.Green);
@@ -939,6 +963,8 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     above_Kumo_Triggered = true;
                     below_Kumo_Triggered = false;
+                    invalid_Close_Triggered = false;
+
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Above CLoud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
@@ -948,6 +974,8 @@ namespace ATAS.Indicators.Technical
                     lastBarAlert = bar;
                     above_Kumo_Triggered = false;
                     below_Kumo_Triggered = true;
+                    invalid_Close_Triggered = false;
+
                     AddAlert("Alert1", ChartInfo.TimeFrame + " " + InstrumentInfo.Instrument, "Close Below CLoud", Colors.Black, Colors.Green);
                     UpdateCounters();
                     ThrowConfirmations();
@@ -1084,10 +1112,10 @@ namespace ATAS.Indicators.Technical
                 if (lagging_Bearish_Triggered && isLagging_Span && isBearishConf)
                     condText += "Bearish Lagging Span\n";
 
-                if (bullishCloud_Triggered && isKumo_Flip && isBullishConf)
+                if (bullishCloud_Triggered && isCloud_Flip && isBullishConf)
                     condText += "Bullish Cloud\n";
 
-                if (bearishCloud_Triggered && isKumo_Flip && isBearishConf)
+                if (bearishCloud_Triggered && isCloud_Flip && isBearishConf)
                     condText += "Bearish Cloud\n";
 
                 if (condText == "")
